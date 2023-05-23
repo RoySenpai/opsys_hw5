@@ -16,11 +16,16 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "ActiveObject.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ActiveObject.h"
-#include "Tasks.h"
+#include <time.h>
+#include <unistd.h>
+
+#define ACTIVE_OBJECTS_NUM 4
+
+PActiveObject *ActiveObjects_Array = NULL;
 
 int main(int argc, char **args) {
 	int n = 0;
@@ -55,7 +60,123 @@ int main(int argc, char **args) {
 		}
 	}
 
-	fprintf(stdout, "main() started with %d tasks and seed %ld\n", n, seed);
+	ActiveObjects_Array = (PActiveObject *) malloc(sizeof(PActiveObject) * ACTIVE_OBJECTS_NUM);
+	PQueueFunc *Functions_Array = (PQueueFunc *) malloc(sizeof(PQueueFunc) * ACTIVE_OBJECTS_NUM);
+	PTaskInit task_init = (PTaskInit) malloc(sizeof(TaskInit));
+
+	if (task_init == NULL || Functions_Array == NULL || ActiveObjects_Array == NULL)
+	{
+		perror("malloc() falied\n");
+		return 1;
+	}
+
+	task_init->n = n;
+	task_init->seed = seed;
+
+	*(Functions_Array) = ActiveObjectTask1;
+	*(Functions_Array + 1) = ActiveObjectTask2;
+	*(Functions_Array + 2) = ActiveObjectTask3;
+	*(Functions_Array + 3) = ActiveObjectTask4;
+
+	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
+	{
+		*(ActiveObjects_Array + i) = CreateActiveObject(*(Functions_Array + i));
+
+		if (*(ActiveObjects_Array + i) == NULL)
+		{
+			fprintf(stderr, "createActiveObject() failed\n");
+			return 1;
+		}
+
+		if (i == 0)
+		{
+			PQueue queue = getQueue(*(ActiveObjects_Array));
+			queueEnqueue(queue, task_init);
+			usleep(1000);
+		}
+	}
+
+	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
+		pthread_join((*(ActiveObjects_Array + i))->thread, NULL);
+
+	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
+		stopActiveObject(*(ActiveObjects_Array + i));
+
+	free(Functions_Array);
+	free(ActiveObjects_Array);
 
 	return 0;
+}
+
+void ActiveObjectTask1(void *task) {
+    PTaskInit task_init = (PTaskInit) task;
+
+    int n = task_init->n;
+    long seed = task_init->seed;
+
+    if (seed == 0)
+        seed = time(NULL);
+
+    srand(seed);
+
+    for (int i = 0; i < n; i++) {
+        unsigned int num = rand() % 900000 + 100000;
+        
+        PTaskData task_data = (PTaskData) malloc(sizeof(TaskData));
+
+        if (task_data == NULL) {
+            printf("Error: malloc has failed\n");
+            exit(1);
+        }
+
+        task_data->num = num;
+
+        PQueue queue = getQueue(*(ActiveObjects_Array + 1));
+
+		queueEnqueue(queue, task_data);
+    }
+
+	free(task_init);
+}
+
+void ActiveObjectTask2(void *task) {
+	PTaskData task_data = (PTaskData) task;
+
+	unsigned int num = task_data->num;
+
+	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
+
+	task_data->num += 11;
+
+	PQueue queue = getQueue(*(ActiveObjects_Array + 2));
+
+	queueEnqueue(queue, task_data);
+}
+
+void ActiveObjectTask3(void *task) {
+	PTaskData task_data = (PTaskData) task;
+
+	unsigned int num = task_data->num;
+
+	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
+
+	task_data->num -= 13;
+
+	PQueue queue = getQueue(*(ActiveObjects_Array + 3));
+
+	queueEnqueue(queue, task_data);
+}
+
+void ActiveObjectTask4(void *task) {
+	PTaskData task_data = (PTaskData) task;
+
+	unsigned int num = task_data->num;
+
+	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
+
+	num += 2;
+
+	fprintf(stdout, "%u\n", num);
+
+	free(task_data);
 }

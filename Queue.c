@@ -16,9 +16,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Queue.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "Queue.h"
 
 PQueue queueCreate() {
 	PQueue queue = (PQueue)malloc(sizeof(Queue));

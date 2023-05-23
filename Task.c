@@ -16,10 +16,10 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Task.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "Task.h"
 
 int check_prime(unsigned int num) {
 	if (num <= 2)

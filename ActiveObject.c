@@ -16,11 +16,11 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "ActiveObject.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "ActiveObject.h"
 
 PActiveObject CreateActiveObject(PQueueFunc func) {
 	PActiveObject activeObject = (PActiveObject)malloc(sizeof(ActiveObject));
@@ -52,7 +52,8 @@ PActiveObject CreateActiveObject(PQueueFunc func) {
 		return NULL;
 	}
 
-	fprintf(stdout, "CreateActiveObject() succeeded: activeObject created and thread started\n");
+	if (DEBUG_MESSAGES)
+		fprintf(stdout, "CreateActiveObject() succeeded: activeObject created and thread started\n");
 
 	return activeObject;
 }
@@ -74,26 +75,14 @@ void stopActiveObject(PActiveObject activeObject) {
 		return;
 	}
 
-	int ret = pthread_cancel(activeObject->thread);
-
-	if (ret != 0)
-	{
-		fprintf(stderr, "stopActiveObject() failed: pthread_cancel() failed: %s\n", strerror(ret));
-		return;
-	}
-
-	ret = pthread_join(activeObject->thread, NULL);
-
-	if (ret != 0)
-	{
-		fprintf(stderr, "stopActiveObject() failed: pthread_join() failed: %s\n", strerror(ret));
-		return;
-	}
+	pthread_cancel(activeObject->thread);
+	pthread_join(activeObject->thread, NULL);
 
 	queueDestroy(activeObject->queue);
 	free(activeObject);
 
-	fprintf(stdout, "stopActiveObject() succeeded: activeObject stopped and destroyed\n");
+	if (DEBUG_MESSAGES)
+		fprintf(stdout, "stopActiveObject() succeeded: activeObject stopped and destroyed\n");
 }
 
 void *activeObjectRunFunction(void *activeObject) {
@@ -103,7 +92,9 @@ void *activeObjectRunFunction(void *activeObject) {
 		return NULL;
 	}
 
-	sleep(1);
+	void *task = NULL;
+
+	usleep(50000);
 
 	PActiveObject ao = (PActiveObject)activeObject;
 	PQueue queue = ao->queue;
@@ -114,15 +105,20 @@ void *activeObjectRunFunction(void *activeObject) {
 		return NULL;
 	}
 
-	fprintf(stdout, "ActiveObject thread started\n");
-
-	void *task = NULL;
+	if (DEBUG_MESSAGES)
+		fprintf(stdout, "ActiveObject thread started\n");
 
 	while ((task = queueDequeue(queue)))
+	{
 		ao->func(task);
+		usleep(1000);
+	}
 
 	if (queueIsEmpty(queue))
-		fprintf(stdout, "activeObjectRunFunction() succeeded: queue is empty, thread ended\n");
+	{
+		if (DEBUG_MESSAGES)
+			fprintf(stdout, "activeObjectRunFunction() succeeded: queue is empty, thread ended\n");
+	}
 	
 	else
 		fprintf(stderr, "activeObjectRunFunction() failed: queue is not empty\n");

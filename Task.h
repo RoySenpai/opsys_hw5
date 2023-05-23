@@ -19,31 +19,38 @@
 #ifndef _TASK_H
 #define _TASK_H
 
+#if !defined(_XOPEN_SOURCE) && !defined(_POSIX_C_SOURCE)
+	#if __STDC_VERSION__ >= 199901L
+		#define _XOPEN_SOURCE 600   /* SUS v3, POSIX 1003.1 2004 (POSIX 2001 + Corrigenda) */
+	#else
+		#define _XOPEN_SOURCE 500   /* SUS v2, POSIX 1003.1 1997 */
+	#endif /* __STDC_VERSION__ */
+#endif /* !_XOPEN_SOURCE && !_POSIX_C_SOURCE */
+
 /*
- * @brief A struct representing a task.
- * @param numbers The number of numbers to check.
+ * @brief A macro for printing debug messages.
+*/
+#define DEBUG_MESSAGES 1
+
+/*
+ * @brief A struct representing a task initialization data.
+ * @param n The number of numbers to check.
  * @param seed The seed for the random number generator.
+ * @note The struct is not thread safe by default.
+*/
+typedef struct _Task_Init_Data {
+	int n;
+	long seed;
+} TaskInit, *PTaskInit;
+
+/*
+ * @brief A struct representing a task data.
  * @param num The number to check.
  * @note The struct is not thread safe by default.
 */
-typedef struct _Task {
-
-	/*
-	 * @brief The number of numbers to check.
-	*/
-	int numbers;
-
-	/*
-	 * @brief The seed for the random number generator.
-	 * @note If this value is 0, the seed will be generated randomly.
-	*/
-	long seed;
-
-	/*
-	 * @brief The number to check.
-	*/
-	unsigned int num;
-} Task, *PTask;
+typedef struct _Task_Data {
+	unsigned long num;
+} TaskData, *PTaskData;
 
 /*
  * @brief The function checks if a given number is a prime number.
