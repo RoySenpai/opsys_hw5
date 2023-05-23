@@ -55,5 +55,7 @@ int main(int argc, char **args) {
 		}
 	}
 
+	fprintf(stdout, "main() started with %d tasks and seed %ld\n", n, seed);
+
 	return 0;
 }

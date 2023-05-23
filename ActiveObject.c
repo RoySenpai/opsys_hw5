@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "ActiveObject.h"
 
@@ -118,7 +119,7 @@ void *activeObjectRunFunction(void *activeObject) {
 	void *task = NULL;
 
 	while ((task = queueDequeue(queue)))
-		ao->func(*((unsigned int *)task));
+		ao->func(task);
 
 	if (queueIsEmpty(queue))
 		fprintf(stdout, "activeObjectRunFunction() succeeded: queue is empty, thread ended\n");
