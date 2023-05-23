@@ -21,21 +21,6 @@
 #include <math.h>
 #include "Tasks.h"
 
-int check_prime(unsigned int num) {
-	if (num <= 2 || num % 2 == 0)
-		return 0;
-
-	unsigned int root = (unsigned int)sqrt(num);
-
-	for (unsigned int i = 3; i <= root; i += 2)
-	{
-		if (num % i == 0)
-			return 0;
-	}
-
-	return 1;
-}
-
 void ActiveObjectTask1(void *task) {
 
 }
