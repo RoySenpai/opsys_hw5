@@ -29,28 +29,22 @@
 
 /*
  * @brief A macro for printing debug messages.
+ * @note 1 for printing debug messages, 0 otherwise.
 */
-#define DEBUG_MESSAGES 1
+#define DEBUG_MESSAGES 0
 
 /*
  * @brief A struct representing a task initialization data.
- * @param n The number of numbers to check.
- * @param seed The seed for the random number generator.
+ * @param n1 Genereic purpose unsigned integer. Used to indicate how many tasks to generate.
+ * @param n2 Genereic purpose unsigned integer.
+ * 			For AO1 it is the seed for the random number generator.
+ * 			For AO2-4 it's the generated number itself.
  * @note The struct is not thread safe by default.
 */
-typedef struct _Task_Init_Data {
-	int n;
-	long seed;
-} TaskInit, *PTaskInit;
-
-/*
- * @brief A struct representing a task data.
- * @param num The number to check.
- * @note The struct is not thread safe by default.
-*/
-typedef struct _Task_Data {
-	unsigned long num;
-} TaskData, *PTaskData;
+typedef struct _Task {
+	unsigned int n1;
+	unsigned int n2;
+} Task, *PTask;
 
 /*
  * @brief The function checks if a given number is a prime number.

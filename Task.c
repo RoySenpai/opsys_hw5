@@ -22,7 +22,7 @@
 #include <math.h>
 
 int check_prime(unsigned int num) {
-	if (num <= 2)
+	if (num <= 2 || num % 2 == 0)
 		return 0;
 
 	unsigned int root = (unsigned int)sqrt(num);

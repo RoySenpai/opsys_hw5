@@ -23,6 +23,8 @@
 #include <unistd.h>
 
 PActiveObject CreateActiveObject(PQueueFunc func) {
+	static unsigned id = 0;
+
 	PActiveObject activeObject = (PActiveObject)malloc(sizeof(ActiveObject));
 
 	if (activeObject == NULL)
@@ -41,6 +43,7 @@ PActiveObject CreateActiveObject(PQueueFunc func) {
 	}
 
 	activeObject->func = func;
+	activeObject->id = id++;
 
 	int ret = pthread_create(&activeObject->thread, NULL, activeObjectRunFunction, activeObject);
 
@@ -75,8 +78,17 @@ void stopActiveObject(PActiveObject activeObject) {
 		return;
 	}
 
-	pthread_cancel(activeObject->thread);
-	pthread_join(activeObject->thread, NULL);
+	// Check if the thread is still running and cancel it if it is.
+	if (pthread_cancel(activeObject->thread) == 0)
+	{
+		int ret = pthread_join(activeObject->thread, NULL);
+
+		if (ret != 0)
+		{
+			fprintf(stderr, "stopActiveObject() failed: pthread_join() failed: %s\n", strerror(ret));
+			return;
+		}
+	}
 
 	queueDestroy(activeObject->queue);
 	free(activeObject);
@@ -92,12 +104,10 @@ void *activeObjectRunFunction(void *activeObject) {
 		return NULL;
 	}
 
-	void *task = NULL;
-
-	usleep(50000);
-
 	PActiveObject ao = (PActiveObject)activeObject;
 	PQueue queue = ao->queue;
+
+	void *task = NULL;
 
 	if (queue == NULL)
 	{
@@ -106,22 +116,34 @@ void *activeObjectRunFunction(void *activeObject) {
 	}
 
 	if (DEBUG_MESSAGES)
-		fprintf(stdout, "ActiveObject thread started\n");
+		fprintf(stdout, "ActiveObject thread started, id: %d\n", ao->id);
 
-	while ((task = queueDequeue(queue)))
+	int run = 1;
+	while (run)
 	{
-		ao->func(task);
-		usleep(1000);
+		while ((task = queueDequeue(queue)))
+		{
+			int ret = ao->func(task);
+
+			if (ret == 0)
+			{
+				if (DEBUG_MESSAGES)
+					fprintf(stdout, "activeObjectRunFunction() succeeded: task completed, id %d\n", ao->id);
+					
+				run = 0;
+				break;
+			}
+		}
 	}
 
 	if (queueIsEmpty(queue))
 	{
 		if (DEBUG_MESSAGES)
-			fprintf(stdout, "activeObjectRunFunction() succeeded: queue is empty, thread ended\n");
+			fprintf(stdout, "activeObjectRunFunction() succeeded: queue is empty, thread ended, id %d\n", ao->id);
 	}
 	
 	else
-		fprintf(stderr, "activeObjectRunFunction() failed: queue is not empty\n");
+		fprintf(stderr, "activeObjectRunFunction() failed: queue is not empty, id %d\n", ao->id);
 
 	return activeObject;
 }

@@ -23,9 +23,13 @@
 
 /*
  * @brief A function pointer that is used to store the function that the active object will execute.
- * @note The function should receive a void pointer and return void.
+ * @param param The parameter that the active object will pass to the function that is stored in the active object itself.
+ * @return An int, representing the status of the function that the active object will execute:
+ * 			1 means to continue executing the function that the active object will execute.
+ * 			0 means to stop executing the function that the active object will execute.
+ * @note The function should receive a void pointer.
 */
-typedef void (*PQueueFunc)(void *);
+typedef int (*PQueueFunc)(void *);
 
 /*
  * @brief An active object struct.
@@ -33,6 +37,7 @@ typedef void (*PQueueFunc)(void *);
  * @param queue The queue that stores the parameters for the function that the
  					active object will pass to the function that is stored in the active object itself.
  * @param func The function that the active object will execute.
+ * @param id The id of the active object.
  * @note This struct is used to represent the active object itself.
  * @note The active object is a thread that executes a function that is stored in the queue.
 */
@@ -57,6 +62,13 @@ typedef struct _ActiveObject {
 	 * @note The function should return an int and receive an unsigned int.
 	*/
 	PQueueFunc func;
+
+	/*
+	 * @brief The id of the active object.
+	 * @note This is an unsigned int.
+	 * @note The id is used to identify the active object.
+	*/
+	unsigned int id;
 } ActiveObject, *PActiveObject;
 
 /*

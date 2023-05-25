@@ -31,7 +31,7 @@ default: all
 ############
 # Programs #
 ############
-st_pipeline: Main.o Queue.o ActiveObject.o Task.o
+st_pipeline: Main.o Queue.o ActiveObject.o Tasks.o Task.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(PFLAGS)
 
 ################

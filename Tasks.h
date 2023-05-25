@@ -23,38 +23,44 @@
 
 /*
  * @brief The first active object task.
- * @param The task's argument (A task object).
- * @return void.
+ * @param task The task's argument (A task object).
+ * @return An integer, representing the status of the function that the active object will execute:
+ *          1 means to continue executing the function that the active object will execute.
+ *          0 means to stop executing the function that the active object will execute.
  * @note The task checks if a given number is a prime number.
  * @note The task prints the result to the standard output.
 */
-void ActiveObjectTask1(void *task);
+int ActiveObjectTask1(void *task);
 
 /*
  * @brief The second active object task.
- * @param The task's argument (A task object).
+ * @param task The task's argument (A task object).
  * @return void.
  * @note The task checks if a given number is a prime number.
  * @note The task prints the result to the standard output.
 */
-void ActiveObjectTask2(void *task);
+int ActiveObjectTask2(void *task);
 
 /*
  * @brief The third active object task.
- * @param The task's argument (A task object).
- * @return void.
+ * @param task The task's argument (A task object).
+ * @return An integer, representing the status of the function that the active object will execute:
+ *          1 means to continue executing the function that the active object will execute.
+ *          0 means to stop executing the function that the active object will execute.
  * @note The task checks if a given number is a prime number.
  * @note The task prints the result to the standard output.
 */
-void ActiveObjectTask3(void *task);
+int ActiveObjectTask3(void *task);
 
 /*
  * @brief The fourth active object task.
- * @param The task's argument (A task object).
- * @return void.
+ * @param task The task's argument (A task object).
+ * @return An integer, representing the status of the function that the active object will execute:
+ *          1 means to continue executing the function that the active object will execute.
+ *          0 means to stop executing the function that the active object will execute.
  * @note The task checks if a given number is a prime number.
  * @note The task prints the result to the standard output.
 */
-void ActiveObjectTask4(void *task);
+int  ActiveObjectTask4(void *task);
 
 #endif // _TASKS_H

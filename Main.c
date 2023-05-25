@@ -28,8 +28,8 @@
 PActiveObject *ActiveObjects_Array = NULL;
 
 int main(int argc, char **args) {
-	int n = 0;
-	long seed = 0;
+	unsigned int n = 0;
+	unsigned int seed = 0;
 
 	switch(argc)
 	{
@@ -42,7 +42,7 @@ int main(int argc, char **args) {
 		case 2:
 		{
 			n = atoi(*(args + 1));
-			seed = time(NULL);
+			seed = 0;
 			break;
 		}
 
@@ -62,7 +62,7 @@ int main(int argc, char **args) {
 
 	ActiveObjects_Array = (PActiveObject *) malloc(sizeof(PActiveObject) * ACTIVE_OBJECTS_NUM);
 	PQueueFunc *Functions_Array = (PQueueFunc *) malloc(sizeof(PQueueFunc) * ACTIVE_OBJECTS_NUM);
-	PTaskInit task_init = (PTaskInit) malloc(sizeof(TaskInit));
+	PTask task_init = (PTask) malloc(sizeof(Task));
 
 	if (task_init == NULL || Functions_Array == NULL || ActiveObjects_Array == NULL)
 	{
@@ -70,8 +70,8 @@ int main(int argc, char **args) {
 		return 1;
 	}
 
-	task_init->n = n;
-	task_init->seed = seed;
+	task_init->n1 = n;
+	task_init->n2 = seed;
 
 	*(Functions_Array) = ActiveObjectTask1;
 	*(Functions_Array + 1) = ActiveObjectTask2;
@@ -88,11 +88,10 @@ int main(int argc, char **args) {
 			return 1;
 		}
 
-		if (i == 0)
+		else if (i == 0)
 		{
 			PQueue queue = getQueue(*(ActiveObjects_Array));
 			queueEnqueue(queue, task_init);
-			usleep(1000);
 		}
 	}
 
@@ -106,77 +105,4 @@ int main(int argc, char **args) {
 	free(ActiveObjects_Array);
 
 	return 0;
-}
-
-void ActiveObjectTask1(void *task) {
-    PTaskInit task_init = (PTaskInit) task;
-
-    int n = task_init->n;
-    long seed = task_init->seed;
-
-    if (seed == 0)
-        seed = time(NULL);
-
-    srand(seed);
-
-    for (int i = 0; i < n; i++) {
-        unsigned int num = rand() % 900000 + 100000;
-        
-        PTaskData task_data = (PTaskData) malloc(sizeof(TaskData));
-
-        if (task_data == NULL) {
-            printf("Error: malloc has failed\n");
-            exit(1);
-        }
-
-        task_data->num = num;
-
-        PQueue queue = getQueue(*(ActiveObjects_Array + 1));
-
-		queueEnqueue(queue, task_data);
-    }
-
-	free(task_init);
-}
-
-void ActiveObjectTask2(void *task) {
-	PTaskData task_data = (PTaskData) task;
-
-	unsigned int num = task_data->num;
-
-	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
-
-	task_data->num += 11;
-
-	PQueue queue = getQueue(*(ActiveObjects_Array + 2));
-
-	queueEnqueue(queue, task_data);
-}
-
-void ActiveObjectTask3(void *task) {
-	PTaskData task_data = (PTaskData) task;
-
-	unsigned int num = task_data->num;
-
-	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
-
-	task_data->num -= 13;
-
-	PQueue queue = getQueue(*(ActiveObjects_Array + 3));
-
-	queueEnqueue(queue, task_data);
-}
-
-void ActiveObjectTask4(void *task) {
-	PTaskData task_data = (PTaskData) task;
-
-	unsigned int num = task_data->num;
-
-	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
-
-	num += 2;
-
-	fprintf(stdout, "%u\n", num);
-
-	free(task_data);
 }
