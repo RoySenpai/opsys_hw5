@@ -16,40 +16,58 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ActiveObject.h"
+#include "Tasks.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
-#define ACTIVE_OBJECTS_NUM 4
-
+// An array of pointers to Active Objects, used by the active objects functions.
 PActiveObject *ActiveObjects_Array = NULL;
 
 int main(int argc, char **args) {
-	unsigned int n = 0;
-	unsigned int seed = 0;
+	unsigned int n = 0, seed = 0;
 
+	// Check the number of arguments, and validate them.
 	switch(argc)
 	{
 		case 1:
 		{
-			fprintf(stderr, "main() failed: not enough arguments\n");
+			fprintf(stderr, "Usage: %s <n> [<seed>]\n", *args);
 			return 1;
 		}
 
 		case 2:
 		{
+			if (atoi(*(args + 1)) < 0)
+			{
+				fprintf(stderr, "Error: n must be a positive integer.\n");
+				return 1;
+			}
+
 			n = atoi(*(args + 1));
-			seed = 0;
+
 			break;
 		}
 
 		case 3:
 		{
+			if (atoi(*(args + 1)) <= 0)
+			{
+				fprintf(stderr, "Error: n must be a positive integer.\n");
+				return 1;
+			}
+
+			else if (atoi(*(args + 2)) <= 0)
+			{
+				fprintf(stderr, "Error: seed must be a positive integer.\n");
+				return 1;
+			}
+
 			n = atoi(*(args + 1));
 			seed = atoi(*(args + 2));
+
 			break;
 		}
 
@@ -60,6 +78,7 @@ int main(int argc, char **args) {
 		}
 	}
 
+	// Memory allocations for the ActiveObjects_Array, Functions_Array and task_init.
 	ActiveObjects_Array = (PActiveObject *) malloc(sizeof(PActiveObject) * ACTIVE_OBJECTS_NUM);
 	PQueueFunc *Functions_Array = (PQueueFunc *) malloc(sizeof(PQueueFunc) * ACTIVE_OBJECTS_NUM);
 	PTask task_init = (PTask) malloc(sizeof(Task));
@@ -70,14 +89,17 @@ int main(int argc, char **args) {
 		return 1;
 	}
 
-	task_init->n1 = n;
-	task_init->n2 = seed;
+	// Initialize the task_init.
+	task_init->num_of_tasks = n;
+	task_init->_data = seed;
 
+	// Initialize the Functions_Array which contains the functions pointers for each Active Object.
 	*(Functions_Array) = ActiveObjectTask1;
 	*(Functions_Array + 1) = ActiveObjectTask2;
 	*(Functions_Array + 2) = ActiveObjectTask3;
 	*(Functions_Array + 3) = ActiveObjectTask4;
 
+	// Create the Active Objects.
 	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
 	{
 		*(ActiveObjects_Array + i) = CreateActiveObject(*(Functions_Array + i));
@@ -87,20 +109,35 @@ int main(int argc, char **args) {
 			fprintf(stderr, "createActiveObject() failed\n");
 			return 1;
 		}
+	}
 
-		else if (i == 0)
+	// Queue the first task to the queue of the first Active Object.
+	PQueue queue = getQueue(*(ActiveObjects_Array));
+	queueEnqueue(queue, task_init);
+
+	// Join the threads.
+	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
+	{
+		int ret = pthread_join((*(ActiveObjects_Array + i))->thread, NULL);
+
+		if (ret != 0)
 		{
-			PQueue queue = getQueue(*(ActiveObjects_Array));
-			queueEnqueue(queue, task_init);
+			fprintf(stderr, "pthread_join() failed: %s\n", strerror(ret));
+			stopActiveObject(*(ActiveObjects_Array));
+			stopActiveObject(*(ActiveObjects_Array + 1));
+			stopActiveObject(*(ActiveObjects_Array + 2));
+			stopActiveObject(*(ActiveObjects_Array + 3));
+			free(Functions_Array);
+			free(ActiveObjects_Array);
+			return 1;
 		}
 	}
 
-	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
-		pthread_join((*(ActiveObjects_Array + i))->thread, NULL);
-
+	// Clean up the active objects after the threads are done.
 	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
 		stopActiveObject(*(ActiveObjects_Array + i));
 
+	// Free all remaining memory allocations.
 	free(Functions_Array);
 	free(ActiveObjects_Array);
 

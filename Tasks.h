@@ -19,48 +19,65 @@
 #ifndef _TASKS_H
 #define _TASKS_H
 
-#include "Task.h"
+#include "ActiveObject.h"
+
+/********************/
+/* Settings Section */
+/********************/
 
 /*
- * @brief The first active object task.
- * @param task The task's argument (A task object).
- * @return An integer, representing the status of the function that the active object will execute:
- *          1 means to continue executing the function that the active object will execute.
- *          0 means to stop executing the function that the active object will execute.
- * @note The task checks if a given number is a prime number.
- * @note The task prints the result to the standard output.
+ * @brief The number of active objects.
+ * @note The number of active objects must be greater than 0.
+ * @note The default number of active objects is 4.
+ */
+#define ACTIVE_OBJECTS_NUM 4
+
+/********************************/
+/* Function Declaratios Section */
+/********************************/
+
+/*
+ * @brief The first active object task. The active object generates random numbers and
+			sends them to the queue of the second active object, one by one, 1ms apart from each other, and then dies.
+ * @param task The task's argument (A Task object).
+ * @return Always returns 1 after the task is done, as the Active Object should die after the task is done.
+ * @note The task is using the passed arguments to determine the number of random numbers to generate,
+			and the seed for the random number generator.
 */
 int ActiveObjectTask1(void *task);
 
 /*
- * @brief The second active object task.
- * @param task The task's argument (A task object).
- * @return void.
+ * @brief The second active object task. The active object receives random numbers from the queue of the first active object,
+			and checks if they are prime numbers, prints the result to the standard output, adds 11 to the number,
+			and sends it to the queue of the third active object.
+ * @param task The task's argument (A Task object).
+ * @return 1 If the task should continue executing, 0 if the task should stop executing.
  * @note The task checks if a given number is a prime number.
  * @note The task prints the result to the standard output.
 */
 int ActiveObjectTask2(void *task);
 
 /*
- * @brief The third active object task.
- * @param task The task's argument (A task object).
- * @return An integer, representing the status of the function that the active object will execute:
- *          1 means to continue executing the function that the active object will execute.
- *          0 means to stop executing the function that the active object will execute.
+ * @brief The third active object task. The active object receives numbers from the queue of the second active object,
+			and checks if they are prime numbers, prints the result to the standard output, subtracts 13 from the number,
+			and sends it to the queue of the fourth active object.
+ * @param task The task's argument (A Task object).
+ * @return 1 If the task should continue executing, 0 if the task should stop executing.
  * @note The task checks if a given number is a prime number.
  * @note The task prints the result to the standard output.
 */
 int ActiveObjectTask3(void *task);
 
 /*
- * @brief The fourth active object task.
- * @param task The task's argument (A task object).
- * @return An integer, representing the status of the function that the active object will execute:
- *          1 means to continue executing the function that the active object will execute.
- *          0 means to stop executing the function that the active object will execute.
+ * @brief The fourth active object task. The active object receives numbers from the queue of the third active object,
+			and checks if they are prime numbers, prints the result to the standard output, adds 2 to the number,
+			and prints the result to the standard output. The final print should be the same as the first print of
+			the number from the second active object.
+ * @param task The task's argument (A Task object).
+ * @return 1 If the task should continue executing, 0 if the task should stop executing.
  * @note The task checks if a given number is a prime number.
  * @note The task prints the result to the standard output.
 */
-int  ActiveObjectTask4(void *task);
+int ActiveObjectTask4(void *task);
 
 #endif // _TASKS_H

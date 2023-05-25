@@ -19,8 +19,13 @@
 #ifndef _QUEUE_H
 #define _QUEUE_H
 
-#include "Tasks.h"
+#include "Task.h"
 #include <pthread.h>
+
+
+/******************************/
+/* Struct Definitions Section */
+/******************************/
 
 /*
  * @brief A queue node struct.
@@ -77,6 +82,11 @@ typedef struct _Queue {
 	*/
 	pthread_mutex_t lock;
 } Queue, *PQueue;
+
+
+/********************************/
+/* Function Declaratios Section */
+/********************************/
 
 /*
  * @brief Creates a new queue.

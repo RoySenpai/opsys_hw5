@@ -21,6 +21,11 @@
 
 #include "Queue.h"
 
+
+/****************************/
+/* Type Definitions Section */
+/****************************/
+
 /*
  * @brief A function pointer that is used to store the function that the active object will execute.
  * @param param The parameter that the active object will pass to the function that is stored in the active object itself.
@@ -31,17 +36,30 @@
 */
 typedef int (*PQueueFunc)(void *);
 
+
+/******************************/
+/* Struct Definitions Section */
+/******************************/
+
 /*
  * @brief An active object struct.
+ * @param id The id of the active object.
  * @param thread The thread that executes the function that is stored in the queue.
  * @param queue The queue that stores the parameters for the function that the
  					active object will pass to the function that is stored in the active object itself.
  * @param func The function that the active object will execute.
- * @param id The id of the active object.
  * @note This struct is used to represent the active object itself.
  * @note The active object is a thread that executes a function that is stored in the queue.
 */
 typedef struct _ActiveObject {
+	/*
+	 * @brief The id of the active object.
+	 * @note This is an unsigned int.
+	 * @note The id is used to identify the active object, and is an incremented number.
+	 * @note This field has no other purpose other than to identify the active object for debugging purposes.
+	*/
+	unsigned int id;
+
 	/*
 	 * @brief The thread that executes the function that is stored in the queue.
 	 * @note This is a pthread_t struct.
@@ -62,14 +80,12 @@ typedef struct _ActiveObject {
 	 * @note The function should return an int and receive an unsigned int.
 	*/
 	PQueueFunc func;
-
-	/*
-	 * @brief The id of the active object.
-	 * @note This is an unsigned int.
-	 * @note The id is used to identify the active object.
-	*/
-	unsigned int id;
 } ActiveObject, *PActiveObject;
+
+
+/********************************/
+/* Function Declaratios Section */
+/********************************/
 
 /*
  * @brief Creates an active object and starts its thread.

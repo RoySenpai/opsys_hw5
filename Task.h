@@ -27,24 +27,48 @@
 	#endif /* __STDC_VERSION__ */
 #endif /* !_XOPEN_SOURCE && !_POSIX_C_SOURCE */
 
+/********************/
+/* Settings Section */
+/********************/
+
 /*
  * @brief A macro for printing debug messages.
  * @note 1 for printing debug messages, 0 otherwise.
+ * @note The default value is 0.
 */
 #define DEBUG_MESSAGES 0
 
+/*******************/
+/* Structs Section */
+/*******************/
+
 /*
  * @brief A struct representing a task initialization data.
- * @param n1 Genereic purpose unsigned integer. Used to indicate how many tasks to generate.
- * @param n2 Genereic purpose unsigned integer.
+ * @param num_of_tasks Used to indicate how many tasks to generate.
+ * @param _data Genereic purpose unsigned integer.
  * 			For AO1 it is the seed for the random number generator.
- * 			For AO2-4 it's the generated number itself.
+ * 			For AO2-4 its the generated number itself.
  * @note The struct is not thread safe by default.
 */
 typedef struct _Task {
-	unsigned int n1;
-	unsigned int n2;
+
+	/*
+	 * @brief The number of tasks to generate.
+	*/
+	unsigned int num_of_tasks;
+
+	/*
+	 * @brief Genereic purpose unsigned integer.
+	 * 			For AO1 it is the seed for the random number generator.
+	 * 			For AO2-4 its the generated number itself.
+	*/
+	unsigned int _data;
 } Task, *PTask;
+
+
+/********************************/
+/* Function Declaratios Section */
+/********************************/
 
 /*
  * @brief The function checks if a given number is a prime number.

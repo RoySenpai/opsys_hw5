@@ -16,8 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
-#include "ActiveObject.h"
+#include "Tasks.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,13 +29,9 @@ int ActiveObjectTask1(void *task) {
     PTask task_init = (PTask) task;
 	PQueue queue = NULL;
 
-    unsigned int n = task_init->n1;
-    unsigned int seed = task_init->n2;
+    unsigned int n = task_init->num_of_tasks, seed = task_init->_data;
 
-    if (seed == 0)
-        seed = time(NULL);
-
-    srand(seed);
+    srand(seed != 0 ? seed : time(NULL));
 
     for (unsigned int i = 0; i < n; i++)
 	{
@@ -50,16 +45,10 @@ int ActiveObjectTask1(void *task) {
             exit(1);
         }
 
-        task_data->n1 = n;
-		task_data->n2 = num;
+        task_data->num_of_tasks = n;
+		task_data->_data = num;
 
-        do
-		{
-			queue = getQueue(*(ActiveObjects_Array + 1));
-		}
-
-		while (queue == NULL);
-
+		queue = getQueue(*(ActiveObjects_Array + 1));
 		queueEnqueue(queue, task_data);
 
 		usleep(1000);
@@ -73,24 +62,14 @@ int ActiveObjectTask1(void *task) {
 int ActiveObjectTask2(void *task) {
 	static unsigned int count = 0;
 	PTask task_data = (PTask) task;
-	PQueue queue = NULL;
 
-	unsigned int iterations = task_data->n1;
-	unsigned int num = task_data->n2;
+	unsigned int iterations = task_data->num_of_tasks, num = task_data->_data;
 
 	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
+	task_data->_data += 11;
 
-	task_data->n2 += 11;
-
-	do
-	{
-		queue = getQueue(*(ActiveObjects_Array + 2));
-	}
-
-	while (queue == NULL);
-
+	PQueue queue = getQueue(*(ActiveObjects_Array + 2));
 	queueEnqueue(queue, task_data);
-	usleep(1000);
 
 	if (iterations <= ++count)
 		return 0;
@@ -100,49 +79,30 @@ int ActiveObjectTask2(void *task) {
 
 int ActiveObjectTask3(void *task) {
 	static unsigned int count = 0;
-	PQueue queue = NULL;
 	PTask task_data = (PTask) task;
 
-	unsigned int iterations = task_data->n1;
-	unsigned int num = task_data->n2;
+	unsigned int iterations = task_data->num_of_tasks, num = task_data->_data;
 
 	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
+	task_data->_data -= 13;
 
-	task_data->n2 -= 13;
-
-	do
-	{
-		queue = getQueue(*(ActiveObjects_Array + 3));
-	}
-
-	while (queue == NULL);
-
+	PQueue queue = getQueue(*(ActiveObjects_Array + 3));
 	queueEnqueue(queue, task_data);
-	usleep(1000);
 
-	if (iterations <= ++count)
-		return 0;
-
-	return 1;
+	return (iterations <= ++count) ? 0 : 1;
 }
 
 int ActiveObjectTask4(void *task) {
 	static unsigned int count = 0;
 	PTask task_data = (PTask) task;
 
-	unsigned int iterations = task_data->n1;
-	unsigned int num = task_data->n2;
+	unsigned int iterations = task_data->num_of_tasks, num = task_data->_data;
 
 	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
-
 	num += 2;
-
 	fprintf(stdout, "%u\n", num);
 
 	free(task_data);
 	
-	if (iterations <= ++count)
-		return 0;
-	
-	return 1;
+	return (iterations <= ++count) ? 0 : 1;
 }

@@ -23,7 +23,7 @@
 #include <unistd.h>
 
 PActiveObject CreateActiveObject(PQueueFunc func) {
-	static unsigned id = 0;
+	static unsigned int id = 0;
 
 	PActiveObject activeObject = (PActiveObject)malloc(sizeof(ActiveObject));
 
@@ -64,7 +64,8 @@ PActiveObject CreateActiveObject(PQueueFunc func) {
 PQueue getQueue(PActiveObject activeObject) {
 	if (activeObject == NULL)
 	{
-		fprintf(stderr, "getQueue() failed: activeObject is NULL\n");
+		if (DEBUG_MESSAGES)
+			fprintf(stderr, "getQueue() failed: activeObject is NULL\n");
 		return NULL;
 	}
 
@@ -106,8 +107,9 @@ void *activeObjectRunFunction(void *activeObject) {
 
 	PActiveObject ao = (PActiveObject)activeObject;
 	PQueue queue = ao->queue;
-
 	void *task = NULL;
+
+	int run = 1;
 
 	if (queue == NULL)
 	{
@@ -118,7 +120,6 @@ void *activeObjectRunFunction(void *activeObject) {
 	if (DEBUG_MESSAGES)
 		fprintf(stdout, "ActiveObject thread started, id: %d\n", ao->id);
 
-	int run = 1;
 	while (run)
 	{
 		while ((task = queueDequeue(queue)))
