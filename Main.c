@@ -19,6 +19,7 @@
 #include "Tasks.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -26,18 +27,42 @@
 // An array of pointers to Active Objects, used by the active objects functions.
 PActiveObject *ActiveObjects_Array = NULL;
 
+// A pointer to the task_init, which is the first task that is being sent to the queue of the first Active Object, which starts the chain of tasks.
+PTask task_init = NULL;
+
+/*
+ * @brief The main function of the program.
+ * @param argc The number of arguments.
+ * @param args The arguments.
+ * @return 0 if the program ran successfully, 1 otherwise.
+ * @note The main function receives the number of tasks to be created, and the seed for the random number generator.
+ * @note The main function creates the Active Objects, and the first task, and then starts the chain of tasks.
+ * @note The main function also frees all the allocated memory.
+*/
 int main(int argc, char **args) {
+	// Initialize the Functions_Array which contains the functions pointers for each Active Object.
+	PQueueFunc Functions_Array[ACTIVE_OBJECTS_NUM] =
+	{
+		ActiveObjectTask1,
+		ActiveObjectTask2,
+		ActiveObjectTask3,
+		ActiveObjectTask4
+	};
+
+	// Variables for the main function.
 	unsigned int n = 0, seed = 0;
 
 	// Check the number of arguments, and validate them.
 	switch(argc)
 	{
+		// If there are no arguments, print the usage message and exit.
 		case 1:
 		{
 			fprintf(stderr, "Usage: %s <n> [<seed>]\n", *args);
 			return 1;
 		}
 
+		// If there is one argument, validate it.
 		case 2:
 		{
 			if (atoi(*(args + 1)) < 0)
@@ -51,6 +76,7 @@ int main(int argc, char **args) {
 			break;
 		}
 
+		// If there are two arguments, validate them.
 		case 3:
 		{
 			if (atoi(*(args + 1)) <= 0)
@@ -71,33 +97,33 @@ int main(int argc, char **args) {
 			break;
 		}
 
+		// If there are more than two arguments, print the usage message and exit.
 		default:
 		{
-			fprintf(stderr, "main() failed: too many arguments\n");
+			fprintf(stderr, "Usage: %s <n> [<seed>]\n", *args);
 			return 1;
 		}
 	}
 
+	// Set the signal handler for SIGINT.
+	signal(SIGINT, sigint_handler);
+
 	// Memory allocations for the ActiveObjects_Array, Functions_Array and task_init.
 	ActiveObjects_Array = (PActiveObject *) malloc(sizeof(PActiveObject) * ACTIVE_OBJECTS_NUM);
-	PQueueFunc *Functions_Array = (PQueueFunc *) malloc(sizeof(PQueueFunc) * ACTIVE_OBJECTS_NUM);
-	PTask task_init = (PTask) malloc(sizeof(Task));
+	task_init = createTask(n, seed);
 
-	if (task_init == NULL || Functions_Array == NULL || ActiveObjects_Array == NULL)
+	if (ActiveObjects_Array == NULL || task_init == NULL)
 	{
 		perror("malloc() falied\n");
+
+		if (ActiveObjects_Array != NULL)
+			free(ActiveObjects_Array);
+
+		if (task_init != NULL)
+			free(task_init);
+
 		return 1;
 	}
-
-	// Initialize the task_init.
-	task_init->num_of_tasks = n;
-	task_init->_data = seed;
-
-	// Initialize the Functions_Array which contains the functions pointers for each Active Object.
-	*(Functions_Array) = ActiveObjectTask1;
-	*(Functions_Array + 1) = ActiveObjectTask2;
-	*(Functions_Array + 2) = ActiveObjectTask3;
-	*(Functions_Array + 3) = ActiveObjectTask4;
 
 	// Create the Active Objects.
 	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
@@ -107,13 +133,19 @@ int main(int argc, char **args) {
 		if (*(ActiveObjects_Array + i) == NULL)
 		{
 			fprintf(stderr, "createActiveObject() failed\n");
+
+			for (int j = 0; j < i; j++)
+				stopActiveObject(*(ActiveObjects_Array + j));
+			
+			free(task_init);
+			free(ActiveObjects_Array);
+
 			return 1;
 		}
 	}
 
 	// Queue the first task to the queue of the first Active Object.
-	PQueue queue = getQueue(*(ActiveObjects_Array));
-	queueEnqueue(queue, task_init);
+	ENQUEUE(getQueue(*(ActiveObjects_Array)), task_init);
 
 	// Join the threads.
 	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
@@ -123,12 +155,13 @@ int main(int argc, char **args) {
 		if (ret != 0)
 		{
 			fprintf(stderr, "pthread_join() failed: %s\n", strerror(ret));
-			stopActiveObject(*(ActiveObjects_Array));
-			stopActiveObject(*(ActiveObjects_Array + 1));
-			stopActiveObject(*(ActiveObjects_Array + 2));
-			stopActiveObject(*(ActiveObjects_Array + 3));
-			free(Functions_Array);
+
+			for (int j = 0; j < ACTIVE_OBJECTS_NUM; j++)
+				stopActiveObject(*(ActiveObjects_Array + j));
+			
+			destroyTask(task_init);
 			free(ActiveObjects_Array);
+
 			return 1;
 		}
 	}
@@ -138,8 +171,31 @@ int main(int argc, char **args) {
 		stopActiveObject(*(ActiveObjects_Array + i));
 
 	// Free all remaining memory allocations.
-	free(Functions_Array);
+	destroyTask(task_init);
 	free(ActiveObjects_Array);
 
 	return 0;
+}
+
+void sigint_handler(int sig) {
+	// Check if the signal is not SIGINT, as this function is only for SIGINT.
+	if (sig != SIGINT)
+		return;
+
+	// Check if the ActiveObjects_Array and task_init are not NULL, as free for NULL is a no-op.
+	if (ActiveObjects_Array == NULL || task_init == NULL)
+		return;
+
+	if (DEBUG_MESSAGES)
+		fprintf(stdout, "\nSIGINT was received, memory cleanup is in progress...\n");
+	
+	// Clean up the active objects if the user pressed CTRL+C.
+	for (int i = 0; i < ACTIVE_OBJECTS_NUM; i++)
+		stopActiveObject(*(ActiveObjects_Array + i));
+
+	// Free all remaining memory allocations.
+	destroyTask(task_init);
+	free(ActiveObjects_Array);
+
+	exit(0);
 }

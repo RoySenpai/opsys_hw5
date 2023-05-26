@@ -29,56 +29,69 @@
 
 /*
  * @brief A queue node struct.
- * @param data The data stored in the node.
+ * @param data The data stored in the node, in generic pointer form.
  * @param next The next node in the queue.
- * @note This struct is used to store data in the queue.
+ * @note This struct is used to store data in the queue internally, and is not meant to be used by the user.
+ * @warning Messing with this struct can cause the queue to malfunction and/or undefined behavior.
 */
 typedef struct _QueueNode {
 	/*
-	 * @brief The data stored in the node.
+	 * @brief The data stored in the node, in generic pointer form.
 	 * @note This is a void pointer, so it can be used to store any type of data.
+	 * @note When using this pointer, make sure to cast it to the correct type.
+	 * @note The pointer must be dynamically allocated, as the queue ment to be used with multiple threads,
+	 * 			and thus it can't use stack-allocated data.
+	 * @note When the queue is destroyed, as long as the queue isn't empty, the data is freed automatically,
+	 * 			so there is no need to free it manually. But when the data is dequeued, it the user's responsibility
+	 * 			to free it.
 	*/
 	void *data;
 
 	/*
 	 * @brief The next node in the queue.
-	 * @note This is a pointer to a QueueNode struct.
+	 * @note This is a pointer to a QueueNode struct, which is a singly-linked list, so the next node is the next node in the queue.
+	 * @warning Never try to access the next node directly, as it can cause the queue to malfunction and/or undefined behavior.
 	*/
 	struct _QueueNode *next;
 } QueueNode, *PQueueNode;
 
 /*
- * @brief A queue struct.
+ * @brief A queue struct that holds the head, tail, size and lock of the queue for thread-safety.
  * @param head The head of the queue.
  * @param tail The tail of the queue.
  * @param size The number of nodes in the queue.
  * @param lock A mutex lock for the queue, to make the queue thread-safe.
  * @note This struct is used to represent the queue itself.
+ * @warning Always use the functions provided to access the queue, and never try to access it directly.
 */
 typedef struct _Queue {
 
 	/*
 	 * @brief The head of the queue.
-	 * @note This is a pointer to a QueueNode struct.
+	 * @note This is a pointer to a QueueNode struct, which is an internal struct used to store data in the queue.
+	 * @note The QueueNode struct is a singly-linked list, so the head is the first node in the queue.
 	*/
 	PQueueNode head;
 
 	/*
-	 * @brief The tail of the queue.
-	 * @note This is a pointer to a QueueNode struct.
+	 * @brief The tail of the queue, for faster enqueueing (O(1) instead of O(n)).
+	 * @note This is a pointer to a QueueNode struct, which is an internal struct used to store data in the queue.
+	 * @note The QueueNode struct is a singly-linked list, so the tail is the last node in the queue,
+	 * 			and thus the lastest node to be enqueued.
 	*/
 	PQueueNode tail;
 
 	/*
 	 * @brief The number of nodes in the queue.
+	 * @note This is an unsigned integer, and thus theoretically can hold 4,294,967,295 nodes.
 	*/
 	unsigned int size;
 
 	/*
-	 * @brief A mutex lock for the queue.
+	 * @brief A mutex lock for the queue, to make the queue thread-safe so that multiple threads can access it at the same time.
 	 * @note When a thread wants to access the queue, it must first lock it.
 	 * @note When a thread is done accessing the queue, it must unlock it.
-	 * @note This is a pointer to a pthread_mutex_t struct.
+	 * @note This feature requires the use of the pthread library, so make sure to link it when compiling.
 	*/
 	pthread_mutex_t lock;
 } Queue, *PQueue;
@@ -90,7 +103,7 @@ typedef struct _Queue {
 
 /*
  * @brief Creates a new queue.
- * @return A pointer to the new queue.
+ * @return A pointer to the new queue on success, NULL otherwise.
  * @note The user is responsible for freeing the memory of the queue with queueDestroy().
 */
 PQueue queueCreate();
@@ -98,28 +111,125 @@ PQueue queueCreate();
 /*
  * @brief Destroys a queue.
  * @param queue A pointer to the queue to destroy.
+ * @note Please note that this function does actually free the memory of data stored in the queue (if there is any),
+ * 			so pay attention to that when using this function, don't free the data twice.
+ * @warning If the queue is destoryed while it is not empty, the data stored in it will be lost forever.
 */
 void queueDestroy(PQueue queue);
 
 /*
  * @brief Enqueues data to the queue.
  * @param queue A pointer to the queue to enqueue to.
- * @param data A pointer to the data to enqueue.
+ * @param data A generic pointer to the data to enqueue.
+ * @note The data must be allocated on the heap, and not on the stack, 
+ * 			as this queue is ment to be used with threads,
+ * 			and the data must be available to all threads.
 */
 void queueEnqueue(PQueue queue, void *data);
 
 /*
  * @brief Dequeues data from the queue.
  * @param queue A pointer to the queue to dequeue from.
- * @return A pointer to the dequeued data.
+ * @return A pointer to the dequeued data on success,
+ * 			NULL if the queue is empty or an error occurred.
 */
 void *queueDequeue(PQueue queue);
 
 /*
  * @brief Checks if the queue is empty.
  * @param queue A pointer to the queue to check.
- * @return 1 if the queue is empty, 0 otherwise.
+ * @return 1 if the queue is empty, 0 if it is not, -1 if an error occurred.
 */
 int queueIsEmpty(PQueue queue);
+
+/*
+ * @brief Gets the size of the queue.
+ * @param queue A pointer to the queue to get the size of.
+ * @return The size of the queue on success, -1 if an error occurred.
+ * @note The size of the queue is the number of nodes in it.
+ * @note Do not confuse the size of the queue with the size of the data stored in it.
+*/
+int queueSize(PQueue queue);
+
+#if DEBUG_MESSAGES == 1
+	/*
+	* @brief Peeks at the data at the head of the queue.
+	* @param queue A pointer to the queue to peek at.
+	* @return A pointer to the data at the head of the queue on success,
+	* 			NULL if the queue is empty or an error occurred.
+	* @note This function isn't a part of the assignment, but I added it for debugging purposes.
+	* @warning Do not use this function to dequeue data from the queue,
+	* 			as it does not dequeue the data, it only returns a pointer to it.
+	* @warning Do not free the data returned by this function, as it is still in the queue.
+	*/
+	void *queuePeek(PQueue queue);
+
+	/*
+	* @brief Peeks at the data at the tail of the queue.
+	* @param queue A pointer to the queue to peek at.
+	* @return A pointer to the data at the tail of the queue on success,
+	* 			NULL if the queue is empty or an error occurred.
+	* @note This function isn't a part of the assignment, but I added it for debugging purposes.
+	* @warning Don't try to use this function to dequeue data from the queue like it's a stack,
+	* 			as it does not dequeue the data, it only returns a pointer to it, and the queue is not a stack.
+	* @warning Do not free the data returned by this function, as it is still in the queue.
+	*/
+	void *queuePeekTail(PQueue queue);
+#endif // DEBUG_MESSAGES
+
+
+/******************/
+/* Macros Section */
+/******************/
+
+/*
+ * @brief A macro to enqueue data to the queue with casting to the correct type used by the queue.
+ * @param queue A pointer to the queue to enqueue to.
+ * @param data The data to enqueue.
+ * @note This macro is used for the user's convenience, so that the user won't have to cast the data himself.
+ * @note The data must be allocated on the heap, and not on the stack,
+ * 			as this queue is ment to be used with threads,
+ * 			and the data must be available to all threads.
+ * @warning Do not use this macro to enqueue data allocated on the stack, as it will cause a memory leak.
+*/
+#define ENQUEUE(queue, data) queueEnqueue(queue, (void *)data)
+
+/*
+ * @brief A macro to dequeue data from the queue and cast it to the correct type.
+ * @param queue A pointer to the queue to dequeue from.
+ * @param type The type to cast the data to.
+ * @return The dequeued data on success, NULL if the queue is empty or an error occurred.
+ * @note This macro is used for the user's convenience, so that the user won't have to cast the data himself.
+*/
+#define DEQUEUE(queue, type) ((type)queueDequeue(queue))
+
+#if DEBUG_MESSAGES == 1
+	/*
+	 * @brief Debug: A macro to peek at the data at the head of the queue and cast it to the correct type.
+	 * @param queue A pointer to the queue to peek at.
+	 * @param type The type to cast the data to.
+	 * @return The data at the head of the queue on success, NULL if the queue is empty or an error occurred.
+	 * @note This macro is used for the user's convenience, so that the user won't have to cast the data himself.
+	 * @note This macro is not a part of the assignment, but I added it for debugging purposes.
+	 * @warning Do not use this macro to dequeue data from the queue,
+	 * 			as it does not dequeue the data, it only returns a pointer to it.
+	 * @warning Do not free the data returned by this macro, as it is still in the queue.
+	*/
+	#define PEEK(queue, type) ((type)queuePeek(queue))
+
+	/*
+	 * @brief Debug: A macro to peek at the data at the tail of the queue and cast it to the correct type.
+	 * @param queue A pointer to the queue to peek at.
+	 * @param type The type to cast the data to.
+	 * @return The data at the head of the queue on success, NULL if the queue is empty or an error occurred.
+	 * @note This macro is used for the user's convenience, so that the user won't have to cast the data himself.
+	 * @note This macro is not a part of the assignment, but I added it for debugging purposes.
+	 * @warning Don't try to use this function to dequeue data from the queue like it's a stack,
+	 * 			as it does not dequeue the data, it only returns a pointer to it, and the queue is not a stack.
+	 * @warning Do not free the data returned by this function, as it is still in the queue.
+	*/
+	#define PEEK_TAIL(queue, type) ((type)queuePeekTail(queue))
+#endif // DEBUG_MESSAGES
+
 
 #endif // _QUEUE_H

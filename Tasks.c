@@ -26,83 +26,91 @@
 extern PActiveObject *ActiveObjects_Array;
 
 int ActiveObjectTask1(void *task) {
-    PTask task_init = (PTask) task;
-	PQueue queue = NULL;
+	PTask task_init = (PTask)task;
 
-    unsigned int n = task_init->num_of_tasks, seed = task_init->_data;
+	unsigned int n = task_init->num_of_tasks, seed = task_init->_data;
 
-    srand(seed != 0 ? seed : time(NULL));
+	srand(seed != 0 ? seed : time(NULL));
 
-    for (unsigned int i = 0; i < n; i++)
+	for (unsigned int i = 0; i < n; i++)
 	{
-        unsigned int num = (rand() % 900000) + 100000;
+		unsigned int num = (rand() % 900000) + 100000;
 
-        PTask task_data = (PTask) malloc(sizeof(Task));
+		PTask task_data = createTask(n, num);
 
-        if (task_data == NULL)
+		if (task_data == NULL)
 		{
-            printf("Error: malloc has failed\n");
-            exit(1);
-        }
+			perror("malloc() failed");
+			exit(1);
+		}
 
-        task_data->num_of_tasks = n;
-		task_data->_data = num;
-
-		queue = getQueue(*(ActiveObjects_Array + 1));
-		queueEnqueue(queue, task_data);
+		ENQUEUE(getQueue(*(ActiveObjects_Array + 1)), task_data);
 
 		usleep(1000);
-    }
-
-	free(task_init);
+	}
 
 	return 0;
 }
 
 int ActiveObjectTask2(void *task) {
 	static unsigned int count = 0;
-	PTask task_data = (PTask) task;
+	PTask task_data = (PTask)task;
 
 	unsigned int iterations = task_data->num_of_tasks, num = task_data->_data;
 
 	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
-	task_data->_data += 11;
 
-	PQueue queue = getQueue(*(ActiveObjects_Array + 2));
-	queueEnqueue(queue, task_data);
+	// This part ensures that the data is passed to the next active object in the chain without any interferences from other threads.
+	destroyTask(task_data);
 
-	if (iterations <= ++count)
-		return 0;
+	task_data = createTask(iterations, (num + 11));
 
-	return 1;
+	if (task_data == NULL)
+	{
+		perror("malloc() failed");
+		exit(1);
+	}
+
+	ENQUEUE(getQueue(*(ActiveObjects_Array + 2)), task_data);
+
+	return (iterations <= ++count) ? 0 : 1;
 }
 
 int ActiveObjectTask3(void *task) {
 	static unsigned int count = 0;
-	PTask task_data = (PTask) task;
+	PTask task_data = (PTask)task;
 
 	unsigned int iterations = task_data->num_of_tasks, num = task_data->_data;
 
 	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
-	task_data->_data -= 13;
 
-	PQueue queue = getQueue(*(ActiveObjects_Array + 3));
-	queueEnqueue(queue, task_data);
+	// This part ensures that the data is passed to the next active object in the chain without any interferences from other threads.
+	destroyTask(task_data);
+
+	task_data = createTask(iterations, (num - 13));
+
+	if (task_data == NULL)
+	{
+		perror("malloc() failed");
+		exit(1);
+	}
+
+	ENQUEUE(getQueue(*(ActiveObjects_Array + 3)), task_data);
 
 	return (iterations <= ++count) ? 0 : 1;
 }
 
 int ActiveObjectTask4(void *task) {
 	static unsigned int count = 0;
-	PTask task_data = (PTask) task;
+	PTask task_data = (PTask)task;
 
 	unsigned int iterations = task_data->num_of_tasks, num = task_data->_data;
 
-	fprintf(stdout, "%u\n%s\n", num, check_prime(num) ? "true" : "false");
-	num += 2;
-	fprintf(stdout, "%u\n", num);
+	fprintf(stdout, "%u\n%s\n%u\n", num, check_prime(num) ? "true" : "false", (num + 2));
 
-	free(task_data);
-	
+	// Make sure the memory is freed, so we don't have a memory leak.
+	// As the task that's passed is allocated in the heap (must, as it's passed to the thread from a different thread and can't be allocated in the stack).
+	destroyTask(task_data);
+
 	return (iterations <= ++count) ? 0 : 1;
 }

@@ -15,7 +15,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Werror -std=c11 -g -pedantic
 LIBS = -lm
 PFLAGS = -pthread
-HFILES = Queue.h ActiveObject.h Task.h Tasks.h
+HFILES = Tasks.h ActiveObject.hQueue.h Task.h
 RM = rm -f
 
 # Phony targets - targets that are not files but commands to be executed by make.
@@ -31,7 +31,7 @@ default: all
 ############
 # Programs #
 ############
-st_pipeline: Main.o Queue.o ActiveObject.o Tasks.o Task.o
+st_pipeline: Main.o Tasks.o ActiveObject.o Queue.o Task.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(PFLAGS)
 
 ################

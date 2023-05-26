@@ -32,6 +32,7 @@
  */
 #define ACTIVE_OBJECTS_NUM 4
 
+
 /********************************/
 /* Function Declaratios Section */
 /********************************/
@@ -79,5 +80,12 @@ int ActiveObjectTask3(void *task);
  * @note The task prints the result to the standard output.
 */
 int ActiveObjectTask4(void *task);
+
+/*
+ * @brief The signal handler for the SIGINT signal.
+ * @param signum The signal number.
+ * @note Used to cleanup memory and release resources when the program is terminated via the SIGINT signal.
+*/
+void sigint_handler(int signum);
 
 #endif // _TASKS_H

@@ -55,7 +55,7 @@ typedef struct _ActiveObject {
 	/*
 	 * @brief The id of the active object.
 	 * @note This is an unsigned int.
-	 * @note The id is used to identify the active object, and is an incremented number.
+	 * @note The id is used to identify the active object, and is an incrementing number.
 	 * @note This field has no other purpose other than to identify the active object for debugging purposes.
 	*/
 	unsigned int id;
@@ -64,6 +64,9 @@ typedef struct _ActiveObject {
 	 * @brief The thread that executes the function that is stored in the queue.
 	 * @note This is a pthread_t struct.
 	 * @note The thread is created when the active object is created.
+	 * @note The thread is destroyed when the active object is destroyed.
+	 * @warning Only use this field to join the thread, or to check if the thread is running,
+	 * 			never change this field directly or cancel the thread.
 	*/
 	pthread_t thread;
 
@@ -71,13 +74,16 @@ typedef struct _ActiveObject {
 	 * @brief The queue that stores the parameters for the function that the
 	 			active object will pass to the function that is stored in the active object itself.
 	 * @note This is a pointer to a Queue struct.
+	 * @warning Do not use this field directly, use the getQueue function instead.
 	*/
 	PQueue queue;
 
 	/*
 	 * @brief The function that the active object will execute.
-	 * @note This is a function pointer.
-	 * @note The function should return an int and receive an unsigned int.
+	 * @note This is a function pointer. The function should receive a void pointer and return an int.
+	 * @note The return value of the function should be 1 to continue executing the function that the active object will execute,
+	 			or 0 to stop executing the function that the active object will execute and stop the active object.
+	 * @warning Don't change this field after the active object is created, unless you know what you are doing.
 	*/
 	PQueueFunc func;
 } ActiveObject, *PActiveObject;
@@ -117,6 +123,8 @@ void stopActiveObject(PActiveObject activeObject);
  * @brief The thread function that the active object executes when it is created.
  * @param activeObject The active object itself.
  * @return The active object itself on success, NULL on failure.
+ * @note This function is used to execute the function that is stored in the queue.
+ * @warning Never call this function directly, use the CreateActiveObject function instead, which creates the active object and starts its thread.
 */
 void *activeObjectRunFunction(void *activeObject);
 

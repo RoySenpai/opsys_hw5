@@ -42,6 +42,14 @@ PActiveObject CreateActiveObject(PQueueFunc func) {
 		return NULL;
 	}
 
+	if (func == NULL)
+	{
+		fprintf(stderr, "CreateActiveObject() failed: func is NULL\n");
+		queueDestroy(activeObject->queue);
+		free(activeObject);
+		return NULL;
+	}
+
 	activeObject->func = func;
 	activeObject->id = id++;
 
@@ -56,7 +64,7 @@ PActiveObject CreateActiveObject(PQueueFunc func) {
 	}
 
 	if (DEBUG_MESSAGES)
-		fprintf(stdout, "CreateActiveObject() succeeded: activeObject created and thread started\n");
+		fprintf(stdout, "CreateActiveObject() succeeded: activeObject created and thread started, id %d\n", activeObject->id);
 
 	return activeObject;
 }
@@ -79,23 +87,18 @@ void stopActiveObject(PActiveObject activeObject) {
 		return;
 	}
 
-	// Check if the thread is still running and cancel it if it is.
-	if (pthread_cancel(activeObject->thread) == 0)
-	{
-		int ret = pthread_join(activeObject->thread, NULL);
+	unsigned int id = activeObject->id;
 
-		if (ret != 0)
-		{
-			fprintf(stderr, "stopActiveObject() failed: pthread_join() failed: %s\n", strerror(ret));
-			return;
-		}
-	}
+	// Gracefully stop the thread, if it is running
+	pthread_cancel(activeObject->thread);
+	activeObject->func = NULL;
+	pthread_join(activeObject->thread, NULL);
 
 	queueDestroy(activeObject->queue);
 	free(activeObject);
 
 	if (DEBUG_MESSAGES)
-		fprintf(stdout, "stopActiveObject() succeeded: activeObject stopped and destroyed\n");
+		fprintf(stdout, "stopActiveObject() succeeded: activeObject stopped and destroyed, id %d\n", id);
 }
 
 void *activeObjectRunFunction(void *activeObject) {
@@ -122,7 +125,15 @@ void *activeObjectRunFunction(void *activeObject) {
 
 	while (run)
 	{
-		while ((task = queueDequeue(queue)))
+		if (ao->func == NULL)
+		{
+			if (DEBUG_MESSAGES)
+				fprintf(stdout, "activeObjectRunFunction() succeeded: func is NULL, received stop signal, id %d\n", ao->id);
+			
+			return activeObject;
+		}
+
+		while (((task = DEQUEUE(queue, void *))) && ao->func)
 		{
 			int ret = ao->func(task);
 

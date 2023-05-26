@@ -49,9 +49,11 @@ void queueDestroy(PQueue queue) {
 
 	PQueueNode node = queue->head;
 
+	// If the queue isn't empty, free all the nodes and free the data they hold.
 	while (node != NULL)
 	{
 		PQueueNode next = node->next;
+		free(node->data);
 		free(node);
 		node = next;
 	}
@@ -137,8 +139,68 @@ int queueIsEmpty(PQueue queue) {
 	}
 
 	pthread_mutex_lock(&queue->lock);
-	int isEmpty = queue->size == 0;
+	int isEmpty = (queue->size == 0);
 	pthread_mutex_unlock(&queue->lock);
 
 	return isEmpty;
 }
+
+#if DEBUG_MESSAGES == 1
+	int queueSize(PQueue queue) {
+		if (queue == NULL)
+		{
+			fprintf(stderr, "queueSize() failed: queue is NULL\n");
+			return -1;
+		}
+
+		pthread_mutex_lock(&queue->lock);
+		int size = queue->size;
+		pthread_mutex_unlock(&queue->lock);
+
+		return size;
+	}
+
+	void *queuePeek(PQueue queue) {
+		if (queue == NULL)
+		{
+			fprintf(stderr, "queuePeek() failed: queue is NULL\n");
+			return NULL;
+		}
+
+		pthread_mutex_lock(&queue->lock);
+
+		if (queue->head == NULL)
+		{
+			pthread_mutex_unlock(&queue->lock);
+			return NULL;
+		}
+
+		void *data = queue->head->data;
+
+		pthread_mutex_unlock(&queue->lock);
+
+		return data;
+	}
+
+	void *queuePeekTail(PQueue queue) {
+		if (queue == NULL)
+		{
+			fprintf(stderr, "queuePeekTail() failed: queue is NULL\n");
+			return NULL;
+		}
+
+		pthread_mutex_lock(&queue->lock);
+
+		if (queue->tail == NULL)
+		{
+			pthread_mutex_unlock(&queue->lock);
+			return NULL;
+		}
+
+		void *data = queue->tail->data;
+
+		pthread_mutex_unlock(&queue->lock);
+
+		return data;
+	}
+#endif // DEBUG_MESSAGES

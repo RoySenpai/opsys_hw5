@@ -19,6 +19,7 @@
 #include "Task.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <math.h>
 
 int check_prime(unsigned int num) {
@@ -34,4 +35,39 @@ int check_prime(unsigned int num) {
 	}
 
 	return 1;
+}
+
+PTask createTask(unsigned int num_of_tasks, unsigned int _data) {
+	PTask task = (PTask)malloc(sizeof(Task));
+
+	if (task == NULL)
+	{
+		perror("malloc() failed");
+		return NULL;
+	}
+
+	task->num_of_tasks = num_of_tasks;
+	task->_data = _data;
+
+	return task;
+}
+
+void destroyTask(PTask task) {
+	if (task == NULL)
+	{
+		fprintf(stderr, "destroyTask() failed: task is NULL\n");
+		return;
+	}
+
+	free(task);
+}
+
+void printTask(PTask task) {
+	if (task == NULL)
+	{
+		fprintf(stderr, "printTask() failed: task is NULL\n");
+		return;
+	}
+
+	printf("Task: %u %u\n", task->num_of_tasks, task->_data);
 }
