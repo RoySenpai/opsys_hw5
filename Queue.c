@@ -113,7 +113,10 @@ void *queueDequeue(PQueue queue) {
 	}
 
 	MUTEX_LOCK(&queue->lock);
-	COND_WAIT(&queue->cond, &queue->lock);
+
+	// Wait for the queue to be non-empty.
+	while (queue->head == NULL)
+		COND_WAIT(&queue->cond, &queue->lock);
 
 	PQueueNode node = queue->head;
 	void *data = node->data;
