@@ -120,7 +120,7 @@ int main(int argc, char **args) {
 			free(ActiveObjects_Array);
 
 		if (task_init != NULL)
-			free(task_init);
+			destroyTask(task_init);
 
 		return 1;
 	}

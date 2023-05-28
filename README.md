@@ -10,7 +10,7 @@ with each other using a queue. The program is written in C and uses POSIX thread
 
 The are four main parts in the program:
 * **Task** – A simple struct that represents a task.
-* **Queue** – A thread safe queue that can be used by multiple threads simultaneously.
+* **Queue** – A thread safe queue that can be used by multiple threads simultaneously, with blocking operations.
 * **Active Object** – An active object that runs in a separate thread and executes a handler function.
 * **Pipeline** – A pipeline of active objects that communicate with each other using a queue. The st_pipeline program is an example of a pipeline between 4 active objects.
 
@@ -33,7 +33,7 @@ The program uses the following APIs:
 The Task API supports the following operations:
 * `PTask createTask(unsigned int num_of_tasks, unsigned int _data)` – Creates a new task with the given data (num_of_tasks and _data), allocates memory for it and returns a pointer to the task.
 * `void taskDestroy(PTask task)` – Destroys a task - frees the memory allocated for the task.
-API
+
 The Task struct has the following fields:
 * `unsigned int num_of_tasks` – The number of tasks that the task has been through.
 * `unsigned int _data` – The data of the task. In this assignment, the data is a number: It's used by the producer to generate a random number,
@@ -48,15 +48,17 @@ The Queue API, which is thread safe, supports the following operations:
 * `void queueEnqueue(PQueue queue, void *data)` – Adds an item to the queue (the item is a generic pointer that can point to any type of data).
 * `void *queueDequeue(PQueue queue)` – Removes an item from the queue and returns it (the item is a generic pointer that can point to any type of data).
 * `int queueIsEmpty(PQueue queue)` – Checks if the queue is empty (returns 1 if the queue is empty, 0 otherwise).
-* `int queueSize(PQueue queue)` – Returns the size of the queue (number of items in the queue).
+* `int queueSize(PQueue queue)` – Returns the size of the queue (number of items in the queue). Defined only if ```DEBUG_MESSAGES``` is set to 1.
 * `void *queuePeek(PQueue queue)` – A debug function that returns the head of the queue, without removing it from the queue and without changing the queue. Defined only if ```DEBUG_MESSAGES``` is set to 1.
 * `void *queuePeekTail(PQueue queue)` – A debug function that returns the tail of the queue, without removing it from the queue and without changing the queue. Defined only if ```DEBUG_MESSAGES``` is set to 1.
+* `void queuePrint(PQueue queue)` – A debug function that prints the queue. Defined only if ```DEBUG_MESSAGES``` is set to 1.
 
 The Queue struct is defined as follows:
 * `PQueueNode head` – A pointer to the head of the queue. The head is the first item that was added to the queue, and this field is used to remove items from the queue efficiently in O(1) time.
 * `PQueueNode tail` – A pointer to the tail of the queue. The tail is the last item that was added to the queue, and this field is used to add items to the queue efficiently in O(1) time.
 * `unsigned int size` – The size of the queue (number of items in the queue). This field is used to check if the queue is empty, and to get the size of the queue in O(1) time.
 * `pthread_mutex_t lock` – A mutex lock that is used to lock the queue when it's being used by a thread. This field is used to make the queue thread safe.
+* `pthread_cond_t cond` – A condition variable that is used to signal threads that are waiting for the queue to be unlocked. This field is used to make the queue a blocking queue.
 
 Each queue node has the following fields:
 * `void *data` – The data of the node. This is a generic pointer that can point to any type of data.

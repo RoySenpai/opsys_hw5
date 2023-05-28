@@ -56,11 +56,12 @@ typedef struct _QueueNode {
 } QueueNode, *PQueueNode;
 
 /*
- * @brief A queue struct that holds the head, tail, size and lock of the queue for thread-safety.
+ * @brief A queue struct that holds the head, tail, size, lock of the queue for thread-safety, and a condition variable for blocking.
  * @param head The head of the queue.
  * @param tail The tail of the queue.
  * @param size The number of nodes in the queue.
  * @param lock A mutex lock for the queue, to make the queue thread-safe.
+ * @param cond A condition variable for the queue, to make the queue a blocking queue.
  * @note This struct is used to represent the queue itself.
  * @warning Always use the functions provided to access the queue, and never try to access it directly.
 */
@@ -94,6 +95,14 @@ typedef struct _Queue {
 	 * @note This feature requires the use of the pthread library, so make sure to link it when compiling.
 	*/
 	pthread_mutex_t lock;
+
+	/*
+	 * @brief A condition variable for the queue, to make the queue a blocking queue, so that threads can wait for it to be non-empty.
+	 * @note When a thread dequeues from an empty queue, it will wait for the queue to be non-empty.
+	 * @note When a thread enqueues to an empty queue, it will signal the condition variable to wake up the waiting thread.
+	 * @note This feature requires the use of the pthread library, so make sure to link it when compiling.
+	*/
+	pthread_cond_t cond;
 } Queue, *PQueue;
 
 
@@ -175,7 +184,16 @@ int queueSize(PQueue queue);
 	* @warning Do not free the data returned by this function, as it is still in the queue.
 	*/
 	void *queuePeekTail(PQueue queue);
-#endif // DEBUG_MESSAGES
+
+	/*
+	 * @brief Prints the queue to the standard output.
+	 * @param queue A pointer to the queue to print.
+	 * @return void
+	 * @note This function isn't a part of the assignment, but I added it for debugging purposes.
+	*/
+	void queuePrint(PQueue queue);
+
+#endif // DEBUG_MESSAGES == 1
 
 
 /******************/
@@ -230,6 +248,72 @@ int queueSize(PQueue queue);
 	*/
 	#define PEEK_TAIL(queue, type) ((type)queuePeekTail(queue))
 #endif // DEBUG_MESSAGES
+
+
+/*
+ * @brief A macro to initialize a mutex.
+ * @param mutex A pointer to the mutex to initialize.
+ * @return 0 on success, or an error code on failure.
+ * @note This macro is used for the user's convenience.
+*/
+#define MUTEX_INIT(mutex) pthread_mutex_init(mutex, NULL)
+
+/*
+ * @brief A macro to lock a mutex.
+ * @param mutex A pointer to the mutex to lock.
+ * @return 0 on success, or an error code on failure.
+ * @note This macro is used for the user's convenience.
+*/
+#define MUTEX_LOCK(mutex) pthread_mutex_lock(mutex)
+
+/*
+ * @brief A macro to unlock a mutex.
+ * @param mutex A pointer to the mutex to unlock.
+ * @return 0 on success, or an error code on failure.
+ * @note This macro is used for the user's convenience.
+*/
+#define MUTEX_UNLOCK(mutex) pthread_mutex_unlock(mutex)
+
+/*
+ * @brief A macro to destroy a mutex.
+ * @param mutex A pointer to the mutex to destroy.
+ * @return 0 on success, or an error code on failure.
+ * @note This macro is used for the user's convenience.
+*/
+#define MUTEX_DESTROY(mutex) pthread_mutex_destroy(mutex)
+
+/*
+ * @brief A macro to initialize a condition variable.
+ * @param cond A pointer to the condition variable to initialize.
+ * @return 0 on success, or an error code on failure.
+ * @note This macro is used for the user's convenience.
+*/
+#define COND_INIT(cond) pthread_cond_init(cond, NULL)
+
+/*
+ * @brief A macro to wait on a condition variable.
+ * @param cond A pointer to the condition variable to wait on.
+ * @param mutex A pointer to the mutex to lock while waiting on the condition variable.
+ * @return 0 on success, or an error code on failure.
+ * @note This macro is used for the user's convenience.
+*/
+#define COND_WAIT(cond, mutex) pthread_cond_wait(cond, mutex)
+
+/*
+ * @brief A macro to signal a condition variable.
+ * @param cond A pointer to the condition variable to signal.
+ * @return 0 on success, or an error code on failure.
+ * @note This macro is used for the user's convenience.
+*/
+#define COND_SIGNAL(cond) pthread_cond_signal(cond)
+
+/*
+ * @brief A macro to destroy a condition variable.
+ * @param cond A pointer to the condition variable to destroy.
+ * @return 0 on success, or an error code on failure.
+ * @note This macro is used for the user's convenience.
+*/
+#define COND_DESTROY(cond) pthread_cond_destroy(cond)
 
 
 #endif // _QUEUE_H

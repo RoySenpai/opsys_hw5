@@ -62,12 +62,14 @@ void destroyTask(PTask task) {
 	free(task);
 }
 
-void printTask(PTask task) {
-	if (task == NULL)
-	{
-		fprintf(stderr, "printTask() failed: task is NULL\n");
-		return;
-	}
+#if DEBUG_MESSAGES == 1
+	void printTask(PTask task) {
+		if (task == NULL)
+		{
+			fprintf(stderr, "printTask() failed: task is NULL\n");
+			return;
+		}
 
-	printf("Task: %u %u\n", task->num_of_tasks, task->_data);
-}
+		printf("Task: %u %u\n", task->num_of_tasks, task->_data);
+	}
+#endif

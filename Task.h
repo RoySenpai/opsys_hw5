@@ -100,13 +100,15 @@ PTask createTask(unsigned int num_of_tasks, unsigned int _data);
  */
 void destroyTask(PTask task);
 
-/*
- * @brief The function prints a task.
- * @param task A pointer to the task to print.
- * @note The function is not thread safe by default.
- * @note The function prints the task in the following format: "Task: <num_of_tasks> <_data>".
- * @note Used for debugging purposes only.
- */
-void printTask(PTask task);
+#if DEBUG_MESSAGES == 1
+	/*
+	* @brief The function prints a task.
+	* @param task A pointer to the task to print.
+	* @note The function is not thread safe by default.
+	* @note The function prints the task in the following format: "Task: <num_of_tasks> <_data>".
+	* @note Used for debugging purposes only.
+	*/
+	void printTask(PTask task);
+#endif /* DEBUG_MESSAGES == 1 */
 
 #endif // _TASK_H

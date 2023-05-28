@@ -33,7 +33,8 @@ PQueue queueCreate() {
 	queue->tail = NULL;
 	queue->size = 0;
 
-	pthread_mutex_init(&queue->lock, NULL);
+	MUTEX_INIT(&queue->lock);
+	COND_INIT(&queue->cond);
 
 	return queue;
 }
@@ -45,7 +46,7 @@ void queueDestroy(PQueue queue) {
 		return;
 	}
 
-	pthread_mutex_lock(&queue->lock);
+	MUTEX_LOCK(&queue->lock);
 
 	PQueueNode node = queue->head;
 
@@ -58,8 +59,10 @@ void queueDestroy(PQueue queue) {
 		node = next;
 	}
 
-	pthread_mutex_unlock(&queue->lock);
-	pthread_mutex_destroy(&queue->lock);
+	MUTEX_UNLOCK(&queue->lock);
+	COND_DESTROY(&queue->cond);
+	MUTEX_DESTROY(&queue->lock);
+
 	free(queue);
 }
 
@@ -81,12 +84,14 @@ void queueEnqueue(PQueue queue, void *data) {
 	node->data = data;
 	node->next = NULL;
 
-	pthread_mutex_lock(&queue->lock);
+	MUTEX_LOCK(&queue->lock);
 
 	if (queue->head == NULL)
 	{
 		queue->head = node;
 		queue->tail = node;
+
+		COND_SIGNAL(&queue->cond);
 	}
 
 	else
@@ -97,7 +102,7 @@ void queueEnqueue(PQueue queue, void *data) {
 
 	queue->size++;
 
-	pthread_mutex_unlock(&queue->lock);
+	MUTEX_UNLOCK(&queue->lock);
 }
 
 void *queueDequeue(PQueue queue) {
@@ -107,13 +112,8 @@ void *queueDequeue(PQueue queue) {
 		return NULL;
 	}
 
-	pthread_mutex_lock(&queue->lock);
-
-	if (queue->head == NULL)
-	{
-		pthread_mutex_unlock(&queue->lock);
-		return NULL;
-	}
+	MUTEX_LOCK(&queue->lock);
+	COND_WAIT(&queue->cond, &queue->lock);
 
 	PQueueNode node = queue->head;
 	void *data = node->data;
@@ -126,7 +126,7 @@ void *queueDequeue(PQueue queue) {
 	free(node);
 	queue->size--;
 
-	pthread_mutex_unlock(&queue->lock);
+	MUTEX_UNLOCK(&queue->lock);
 
 	return data;
 }
@@ -138,9 +138,9 @@ int queueIsEmpty(PQueue queue) {
 		return -1;
 	}
 
-	pthread_mutex_lock(&queue->lock);
+	MUTEX_LOCK(&queue->lock);
 	int isEmpty = (queue->size == 0);
-	pthread_mutex_unlock(&queue->lock);
+	MUTEX_UNLOCK(&queue->lock);
 
 	return isEmpty;
 }
@@ -153,9 +153,9 @@ int queueIsEmpty(PQueue queue) {
 			return -1;
 		}
 
-		pthread_mutex_lock(&queue->lock);
+		MUTEX_LOCK(&queue->lock);
 		int size = queue->size;
-		pthread_mutex_unlock(&queue->lock);
+		MUTEX_UNLOCK(&queue->lock);
 
 		return size;
 	}
@@ -167,17 +167,17 @@ int queueIsEmpty(PQueue queue) {
 			return NULL;
 		}
 
-		pthread_mutex_lock(&queue->lock);
+		MUTEX_LOCK(&queue->lock);
 
 		if (queue->head == NULL)
 		{
-			pthread_mutex_unlock(&queue->lock);
+			MUTEX_UNLOCK(&queue->lock);
 			return NULL;
 		}
 
 		void *data = queue->head->data;
 
-		pthread_mutex_unlock(&queue->lock);
+		MUTEX_UNLOCK(&queue->lock);
 
 		return data;
 	}
@@ -189,18 +189,56 @@ int queueIsEmpty(PQueue queue) {
 			return NULL;
 		}
 
-		pthread_mutex_lock(&queue->lock);
+		MUTEX_LOCK(&queue->lock);
 
 		if (queue->tail == NULL)
 		{
-			pthread_mutex_unlock(&queue->lock);
+			MUTEX_UNLOCK(&queue->lock);
 			return NULL;
 		}
 
 		void *data = queue->tail->data;
 
-		pthread_mutex_unlock(&queue->lock);
+		MUTEX_UNLOCK(&queue->lock);
 
 		return data;
+	}
+
+	void queuePrint(PQueue queue) {
+		if (queue == NULL)
+		{
+			fprintf(stderr, "queuePrint() failed: queue is NULL\n");
+			return;
+		}
+
+		MUTEX_LOCK(&queue->lock);
+
+		fprintf(stdout, "Queue info:\n[\n");
+		fprintf(stdout, "\tQueue: %p\n", (void *)queue);
+		fprintf(stdout, "\tQueue size: %d\n", queue->size);
+		fprintf(stdout, "\tQueue head: %p\n", (void *)queue->head);
+		fprintf(stdout, "\tQueue tail: %p\n", (void *)queue->tail);
+		fprintf(stdout, "\tQueue lock: %p\n", (void *)&queue->lock);
+		fprintf(stdout, "\tQueue cond: %p\n", (void *)&queue->cond);
+		fprintf(stdout, "\tQueue nodes:\n\t\t");
+
+		if (queue->head == NULL)
+		{
+			fprintf(stdout, "NULL\n]\n");
+			MUTEX_UNLOCK(&queue->lock);
+			return;
+		}
+
+		PQueueNode node = queue->head;
+
+		while (node != NULL)
+		{
+			fprintf(stdout, "%p -> ", node->data);
+			node = node->next;
+		}
+
+		fprintf(stdout, "\n]\n");
+
+		MUTEX_UNLOCK(&queue->lock);
 	}
 #endif // DEBUG_MESSAGES

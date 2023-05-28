@@ -112,8 +112,6 @@ void *activeObjectRunFunction(void *activeObject) {
 	PQueue queue = ao->queue;
 	void *task = NULL;
 
-	int run = 1;
-
 	if (queue == NULL)
 	{
 		fprintf(stderr, "activeObjectRunFunction() failed: queue is NULL\n");
@@ -123,39 +121,27 @@ void *activeObjectRunFunction(void *activeObject) {
 	if (DEBUG_MESSAGES)
 		fprintf(stdout, "ActiveObject thread started, id: %d\n", ao->id);
 
-	while (run)
+	while (ao->func && ((task = DEQUEUE(queue, void *))))
 	{
-		if (ao->func == NULL)
+		int ret = ao->func(task);
+
+		if (ret == 0)
 		{
 			if (DEBUG_MESSAGES)
-				fprintf(stdout, "activeObjectRunFunction() succeeded: func is NULL, received stop signal, id %d\n", ao->id);
-			
-			return activeObject;
-		}
-
-		while (((task = DEQUEUE(queue, void *))) && ao->func)
-		{
-			int ret = ao->func(task);
-
-			if (ret == 0)
-			{
-				if (DEBUG_MESSAGES)
-					fprintf(stdout, "activeObjectRunFunction() succeeded: task completed, id %d\n", ao->id);
-					
-				run = 0;
-				break;
-			}
-		}
-	}
-
-	if (queueIsEmpty(queue))
-	{
-		if (DEBUG_MESSAGES)
-			fprintf(stdout, "activeObjectRunFunction() succeeded: queue is empty, thread ended, id %d\n", ao->id);
-	}
+				fprintf(stdout, "activeObjectRunFunction() succeeded: task completed, id %d\n", ao->id);
 	
-	else
-		fprintf(stderr, "activeObjectRunFunction() failed: queue is not empty, id %d\n", ao->id);
+			break;
+		}
+	}
+
+	if (DEBUG_MESSAGES)
+	{
+		if (queueIsEmpty(queue))
+			fprintf(stdout, "activeObjectRunFunction() succeeded: queue is empty, thread ended, id %d\n", ao->id);
+		
+		else
+			fprintf(stderr, "activeObjectRunFunction() failed: queue is not empty, id %d\n", ao->id);
+	}
 
 	return activeObject;
 }
